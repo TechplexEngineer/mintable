@@ -10,9 +10,10 @@ const { parseEnvOrDefault } = require('./lib/common');
     'amount',
     'name',
     'account_details.official_name',
+    'account',
     'category.0',
     'category.1',
-    'pending'
+    // 'pending'
   ];
   const defaultReferenceColumns = ['notes', 'work', 'joint'];
   const defaultSpreadsheetProvider = 'sheets';
