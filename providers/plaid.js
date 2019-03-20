@@ -8,6 +8,9 @@ exports.getTransactions = async (transactionColumns, categoryOverrides, currentM
 
     sanitized['account_details'] = _.get(accounts, transaction.account_id, {});
 
+    // console.log(JSON.stringify(sanitized, null, 2));
+    // process.exit()
+
     /*
      * Explode out Plaid's object hierarchy.
      *
@@ -48,16 +51,32 @@ exports.getTransactions = async (transactionColumns, categoryOverrides, currentM
   const sorted = _.sortBy(transactions, 'date');
   const sanitized = _.map(sorted, transaction => sanitizeTransaction(transaction, clean_accounts));
 
-  const partitioned = _.partition(
-    sanitized,
-    transaction =>
-      moment(transaction.date)
-        .startOf('month')
-        .format('YYYY.MM') === currentMonthSheetTitle
-  );
+  let transactionsByMonth = {};
 
-  return {
-    currentMonthTransactions: _.map(partitioned[0], transaction => _.at(transaction, transactionColumns)),
-    lastMonthTransactions: _.map(partitioned[1], transaction => _.at(transaction, transactionColumns))
-  };
+  _.forEach(sanitized, transaction => {
+    let group = moment(transaction.date).startOf('month').format('YYYY.MM');
+
+    transactionsByMonth[group] = transactionsByMonth[group] || [];
+
+    transactionsByMonth[group].push(transaction);
+
+
+  });
+
+
+
+  // const partitioned = _.partition(
+  //   sanitized,
+  //   transaction =>
+  //     moment(transaction.date)
+  //       .startOf('month')
+  //       .format('YYYY.MM') === currentMonthSheetTitle
+  // );
+  
+  return transactionsByMonth;
+
+  // return {
+  //   currentMonthTransactions: _.map(partitioned[0], transaction => _.at(transaction, transactionColumns)),
+  //   lastMonthTransactions: _.map(partitioned[1], transaction => _.at(transaction, transactionColumns))
+  // };
 };
