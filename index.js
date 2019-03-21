@@ -39,16 +39,15 @@ const { parseEnvOrDefault } = require('./lib/common');
   const currentMonthSheetTitle = currentMonth.format('YYYY.MM');
   const lastMonthSheetTitle = lastMonth.format('YYYY.MM');
 
-  let currentMonthTransactions;
-  let lastMonthTransactions;
+  let transactionsByMonth;
 
   switch (transactionProvider) {
     case 'plaid':
-      ({ currentMonthTransactions, lastMonthTransactions } = await getTransactions(
+      transactionsByMonth = await getTransactions(
         transactionColumns,
         categoryOverrides,
         currentMonthSheetTitle
-      ));
+      );
       break;
 
     default:
@@ -58,8 +57,7 @@ const { parseEnvOrDefault } = require('./lib/common');
   switch (spreadsheetProvider) {
     case 'sheets':
       await updateSheets(
-        currentMonthTransactions,
-        lastMonthTransactions,
+        transactionsByMonth,
         transactionColumns,
         referenceColumns,
         currentMonthSheetTitle,

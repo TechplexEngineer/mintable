@@ -10,8 +10,7 @@ const {
 } = require('../lib/sheets');
 
 exports.updateSheets = async (
-  currentMonthTransactions,
-  lastMonthTransactions,
+  transactionsByMonth,
   transactionColumns,
   referenceColumns,
   currentMonthSheetTitle,
@@ -25,24 +24,6 @@ exports.updateSheets = async (
   const publicTemplateSheetId = '10fYhPJzABd8KlgAzxtiyFN-L_SebTvM8SaAK_wHk-Fw';
 
   const sheets = await getSheets(process.env.SHEETS_SHEET_ID);
-  let currentMonthSheet = _.find(sheets, sheet => sheet.properties.title === currentMonthSheetTitle);
-  let lastMonthSheet = _.find(sheets, sheet => sheet.properties.title === lastMonthSheetTitle);
-
-  if (!lastMonthSheet) {
-    const publicTemplateSheets = await getSheets(publicTemplateSheetId);
-    lastMonthSheet = await duplicateSheet(publicTemplateSheetId, publicTemplateSheets[0].properties.sheetId);
-    await renameSheet(lastMonthSheet.properties.sheetId, lastMonthSheetTitle);
-    await clearSheet(`${lastMonthSheetTitle}!${firstTransactionColumn}:${lastReferenceColumn}`);
-  }
-
-  if (!currentMonthSheet) {
-    currentMonthSheet = await duplicateSheet(process.env.SHEETS_SHEET_ID, lastMonthSheet.properties.sheetId);
-    await renameSheet(currentMonthSheet.properties.sheetId, currentMonthSheetTitle);
-    await clearSheet(`${currentMonthSheetTitle}!${firstTransactionColumn}:${lastReferenceColumn}`);
-  }
-
-  await clearSheet(`${currentMonthSheetTitle}!${firstTransactionColumn}:${lastTransactionColumn}`);
-  await clearSheet(`${lastMonthSheetTitle}!${firstTransactionColumn}:${lastTransactionColumn}`);
 
   const transformTransactionsToUpdates = (sheetTitle, transactions) => {
     // Transaction data (rows 2 onwards)
@@ -67,12 +48,50 @@ exports.updateSheets = async (
     return updates;
   };
 
-  await updateSheet(transformTransactionsToUpdates(currentMonthSheetTitle, currentMonthTransactions));
-  await updateSheet(transformTransactionsToUpdates(lastMonthSheetTitle, lastMonthTransactions));
+  for (let yyyymm in transactionsByMonth) {
+    let transactions = transactionsByMonth[yyyymm];
+    let sheet = _.find(sheets, sheet => sheet.properties.title === yyyymm);
+    if (!sheet) {
+      const publicTemplateSheets = await getSheets(publicTemplateSheetId);
+      sheet = await duplicateSheet(publicTemplateSheetId, publicTemplateSheets[0].properties.sheetId);
+      await renameSheet(lastMonthSheet.properties.sheetId, yyyymm);
+    }
+    await clearSheet(`${yyyymm}!${firstTransactionColumn}:${lastReferenceColumn}`);
+    await updateSheet(transformTransactionsToUpdates(yyyymm, transactions));
 
-  await formatHeaderRow(currentMonthSheet.properties.sheetId);
-  await formatHeaderRow(lastMonthSheet.properties.sheetId);
+    await formatHeaderRow(sheet.properties.sheetId);
 
-  await resizeColumns(currentMonthSheet.properties.sheetId, numAutomatedColumns);
-  await resizeColumns(lastMonthSheet.properties.sheetId, numAutomatedColumns);
+    await resizeColumns(sheet.properties.sheetId, numAutomatedColumns);
+
+  }
+
+  // let currentMonthSheet = _.find(sheets, sheet => sheet.properties.title === currentMonthSheetTitle);
+  // let lastMonthSheet = _.find(sheets, sheet => sheet.properties.title === lastMonthSheetTitle);
+
+  // if (!lastMonthSheet) {
+  //   const publicTemplateSheets = await getSheets(publicTemplateSheetId);
+  //   lastMonthSheet = await duplicateSheet(publicTemplateSheetId, publicTemplateSheets[0].properties.sheetId);
+  //   await renameSheet(lastMonthSheet.properties.sheetId, lastMonthSheetTitle);
+  //   await clearSheet(`${lastMonthSheetTitle}!${firstTransactionColumn}:${lastReferenceColumn}`);
+  // }
+
+  // if (!currentMonthSheet) {
+  //   currentMonthSheet = await duplicateSheet(process.env.SHEETS_SHEET_ID, lastMonthSheet.properties.sheetId);
+  //   await renameSheet(currentMonthSheet.properties.sheetId, currentMonthSheetTitle);
+  //   await clearSheet(`${currentMonthSheetTitle}!${firstTransactionColumn}:${lastReferenceColumn}`);
+  // }
+
+  // await clearSheet(`${currentMonthSheetTitle}!${firstTransactionColumn}:${lastTransactionColumn}`);
+  // await clearSheet(`${lastMonthSheetTitle}!${firstTransactionColumn}:${lastTransactionColumn}`);
+
+  
+
+  // await updateSheet(transformTransactionsToUpdates(currentMonthSheetTitle, currentMonthTransactions));
+  // await updateSheet(transformTransactionsToUpdates(lastMonthSheetTitle, lastMonthTransactions));
+
+  // await formatHeaderRow(currentMonthSheet.properties.sheetId);
+  // await formatHeaderRow(lastMonthSheet.properties.sheetId);
+
+  // await resizeColumns(currentMonthSheet.properties.sheetId, numAutomatedColumns);
+  // await resizeColumns(lastMonthSheet.properties.sheetId, numAutomatedColumns);
 };
